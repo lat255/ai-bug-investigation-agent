@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import OpenAI from "openai"; 
 
 const client = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
@@ -33,6 +33,7 @@ Return your answer strictly in JSON format like this:
 }
 
 Do not include any text outside the JSON.
+Return ONLY valid JSON. Do not include markdown, explanations, or code blocks.
 `;
 
   const completion = await client.chat.completions.create({
@@ -42,17 +43,24 @@ Do not include any text outside the JSON.
     ]
   });
 
-  const text = completion.choices[0].message.content ?? "{}";
+const text = completion.choices[0].message.content ?? "{}";
+
+let parsed;
+
+try {
   const jsonMatch = text.match(/\{[\s\S]*\}/);
-  let parsed;
-  
-  try {
-    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : "{}");
-  } catch {
-    parsed = {
+  parsed = JSON.parse(jsonMatch ? jsonMatch[0] : "{}");
+} catch (err) {
+
+  console.error("JSON parse failed:", err);
+
+  parsed = {
+    language: "",
+    bugType: "",
     explanation: text,
     rootCause: [],
-    fix: [] 
+    fix: [],
+    correctedCode: ""
   };
 }
 
